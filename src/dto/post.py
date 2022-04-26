@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, constr
 from datetime import datetime
 from uuid import UUID
 from enum import Enum
@@ -21,14 +21,14 @@ class PostDto(BaseModel):
 
 
 class CreatePost(BaseModel):
-    text: str
+    text: constr(max_lenght=777, min_length=1, strip_whitespace=True)
     type: PostTypes = PostTypes.DEFAULT
     author_id: UUID
 
 
 class CreateQuote(BaseModel):
     referred_post_id: UUID
-    quote_text: str
+    quote_text: constr(max_lenght=777, min_length=1, strip_whitespace=True)
     author_id: UUID
     type: PostTypes = PostTypes.QUOTED
 

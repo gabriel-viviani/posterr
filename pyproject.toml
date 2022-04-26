@@ -12,6 +12,7 @@ flake8 = "^4.0.1"
 Faker = "^13.3.5"
 SQLAlchemy = "^1.4.35"
 pytz = "^2022.1"
+fastapi-pagination = "^0.9.3"
 
 [tool.poetry.dev-dependencies]
 black = "^22.3.0"

@@ -11,7 +11,7 @@ class Follow(Base):
     __tablename__ = "follow"
 
     follower_id = Column(ForeignKey("user.id"), UUID(as_uuid=True), primary_key=True)
-    followed_id = Column(ForeignKey("user.id"), UUID(as_uuid=True), primary_key=True)
+    following_id = Column(ForeignKey("user.id"), UUID(as_uuid=True), primary_key=True)
     since = Column(DateTime, default=generate_now())
 
 
@@ -25,8 +25,8 @@ class User(Base):
     followers = relationship(
         "User",
         secondary=Follow,
-        primaryjoin=id == Follow.follower_id,
-        secondaryjoin=id == Follow.followed_id,
+        primaryjoin=id == Follow.following_id,
+        secondaryjoin=id == Follow.follower_id,
         backref=backref("children"),
     )
 

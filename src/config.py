@@ -1,21 +1,13 @@
 import os
-from datetime import datetime
+from datetime import date
 
-import pytz
-
-DEFAULT_TIMEZONE_REGION = "America/Sao_Paulo"
 DEFAULT_DATABASE_URL = "postgresql://user:password@localhost:5432/database"
 DEFAULT_ENV = "DEV"
 TEST_ENV = "TEST"
 
 
-def get_timezone_region() -> str:
-    return os.environ.get("TIMEZONE_REGION", DEFAULT_TIMEZONE_REGION)
-
-
-def generate_now() -> datetime:
-    tz = pytz.timezone(get_timezone_region())
-    return datetime.now(tz)
+def generate_today() -> date:
+    return date.today()
 
 
 def get_database_url() -> str:
