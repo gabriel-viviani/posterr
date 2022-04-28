@@ -1,23 +1,24 @@
+from fastapi_pagination import Params, Page as BasePage
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from src.repository.database import get_db
-from src.service import post as post_service
 from src.dto.post import PostDto, CreatePost, CreateQuote, CreateRepost
+from src.service import post as post_service
+from src.repository.database import get_db
 
+Page = BasePage.with_custom_options(size=10)
 router = APIRouter()
 
 
 @router.get("/", status.HTTP_200_OK)
 def get_all(
+    params: Params,
     db: Session = Depends(get_db),
-    limit: int = 10,
     only_follower: bool = False,
     user_id: str = None,
 ) -> List[PostDto]:
-    # TODO: Add proper pagination with fastapi-pagination
-    return post_service.get_posts(db, limit, only_follower, user_id)
+    return post_service.get_posts(db, params, only_follower, user_id)
 
 
 @router.post("/", status.HTTP_201_CREATED)

@@ -1,6 +1,7 @@
 from fastapi import HTTPException, status
+from fastapi_pagination import Params
+from typing import List, Optional, Any
 from sqlalchemy.orm import Session
-from typing import List, Optional
 from uuid import UUID
 
 from src.dto.post import PostDto, CreatePost, CreateQuote, CreateRepost
@@ -11,37 +12,21 @@ from src.model.post import Post
 
 
 def get_posts(
-    db: Session, limit: int, only_follower: bool, user_id
+    db: Session, params: Params, only_follower: bool, user_id: UUID
 ) -> Optional[List[PostDto]]:
     if only_follower:
-        posts = post_repo.get_following_posts(db, limit, user_id)
+        posts = post_repo.get_following_posts(db, params, user_id)
 
         if not posts:
             return []
 
-        return [
-            PostDto(
-                id=post.id,
-                text=post.text,
-                created_at=post.created_at,
-                user=UserDto(id=post.user.id, username=post.user.username),
-            )
-            for post in posts
-        ]
+        return _post_list_to_dto(posts)
 
-    posts = post_repo.get_posts(db, limit)
+    posts = post_repo.get_posts(db, params)
     if not posts:
         return []
 
-    return [
-        PostDto(
-            id=post.id,
-            text=post.text,
-            created_at=post.created_at,
-            user=UserDto(id=post.user.id, username=post.user.username),
-        )
-        for post in posts
-    ]
+    return _post_list_to_dto(posts)
 
 
 def create_repost(db: Session, new_repost: CreateRepost) -> None:
@@ -107,3 +92,23 @@ def _referenced_post_exists(db: Session, referred_post_id: UUID) -> bool:
         )
 
     return True
+
+
+def get_posts_by_author_id(
+    db: Session, params: Params, author_id: UUID
+) -> List[PostDto]:
+    posts = post_repo.get_posts_by_author(db, params, author_id)
+    return _post_list_to_dto(posts)
+
+
+def _post_list_to_dto(posts: Any) -> List[PostDto]:
+    [
+        PostDto(
+            id=post.id,
+            text=post.text,
+            created_at=post.created_at,
+            type=post.type,
+            user=UserDto(id=post.user.id, username=post.user.username),
+        )
+        for post in posts
+    ]

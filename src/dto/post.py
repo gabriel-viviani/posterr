@@ -16,6 +16,7 @@ class PostDto(BaseModel):
     id: UUID
     text: str
     created_at: datetime
+    type: PostTypes
 
     user: UserDto
 

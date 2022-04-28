@@ -9,3 +9,7 @@ class UserDto(BaseModel):
     joined_date: datetime
     followers: int
     following: int
+
+
+class UserFollow(BaseModel):
+    followed_id: UUID
