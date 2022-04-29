@@ -1,10 +1,18 @@
+from typing import List, Optional, Any, Union
 from fastapi import HTTPException, status
 from fastapi_pagination import Params
-from typing import List, Optional, Any
 from sqlalchemy.orm import Session
 from uuid import UUID
 
-from src.dto.post import PostDto, CreatePost, CreateQuote, CreateRepost
+from src.dto.post import (
+    PostDto,
+    CreatePost,
+    CreateQuote,
+    CreateRepost,
+    QuotePostDto,
+    RepostDto,
+    PostTypes,
+)
 from src.repository import post as post_repo
 from src.service import user as user_service
 from src.dto.user import UserDto
@@ -13,7 +21,7 @@ from src.model.post import Post
 
 def get_posts(
     db: Session, params: Params, only_follower: bool, user_id: UUID
-) -> Optional[List[PostDto]]:
+) -> Optional[List[Union[PostDto, QuotePostDto, RepostDto]]]:
     if only_follower:
         posts = post_repo.get_following_posts(db, params, user_id)
 
@@ -29,7 +37,7 @@ def get_posts(
     return _post_list_to_dto(posts)
 
 
-def create_repost(db: Session, new_repost: CreateRepost) -> None:
+def create_repost(db: Session, new_repost: CreateRepost) -> RepostDto:
     if (
         user_service.get_user(db, new_repost.author_id)
         and _referenced_post_exists(db, new_repost.referred_post_id)
@@ -40,12 +48,34 @@ def create_repost(db: Session, new_repost: CreateRepost) -> None:
             type=new_repost.type,
             refered_post_id=new_repost.referred_post_id,
         )
-        post_repo.save_post(post)
+        created = post_repo.save_post(db, post)
+
+        return RepostDto(
+            id=created.id,
+            created_at=created.created_at,
+            type=created.type,
+            user=UserDto(
+                id=created.user.id,
+                username=created.user.username,
+                joined_date=created.user.joined_date,
+            ),
+            refered_post=PostDto(
+                id=created.refered_post.id,
+                text=created.refered_post.id,
+                created_at=created.refered_post.id,
+                type=created.refered_post.id,
+                user=UserDto(
+                    id=created.refered_post.user.id,
+                    username=created.refered_post.user.username,
+                    joined_date=created.refered_post.user.joined_date,
+                ),
+            ),
+        )
 
     return
 
 
-def create_quote(db: Session, new_quote: CreateQuote) -> None:
+def create_quote(db: Session, new_quote: CreateQuote) -> QuotePostDto:
     if (
         user_service.get_user(db, new_quote.author_id)
         and _referenced_post_exists(db, new_quote.referred_post_id)
@@ -57,17 +87,52 @@ def create_quote(db: Session, new_quote: CreateQuote) -> None:
             type=new_quote.type,
             refered_post_id=new_quote.referred_post_id,
         )
-        post_repo.save_post(post)
+        created = post_repo.save_post(db, post)
+
+        return QuotePostDto(
+            id=created.id,
+            text=created.text,
+            created_at=created.created_at,
+            type=created.type,
+            user=UserDto(
+                id=created.user.id,
+                username=created.user.username,
+                joined_date=created.user.joined_date,
+            ),
+            refered_post=PostDto(
+                id=created.refered_post.id,
+                text=created.refered_post.id,
+                created_at=created.refered_post.id,
+                type=created.refered_post.id,
+                user=UserDto(
+                    id=created.refered_post.user.id,
+                    username=created.refered_post.user.username,
+                    joined_date=created.refered_post.user.joined_date,
+                ),
+            ),
+        )
 
     return
 
 
-def create_post(db: Session, new_post: CreatePost) -> None:
+def create_post(db: Session, new_post: CreatePost) -> PostDto:
     if user_service.get_user(db, new_post.author_id) and _can_user_post(
         db, new_post.author_id
     ):
         post = Post(text=new_post.text, author_id=new_post.author_id)
-        post_repo.save_post(db, post)
+        created = post_repo.save_post(db, post)
+
+        return PostDto(
+            id=created.id,
+            text=created.text,
+            created_at=created.created_at,
+            type=created.type,
+            user=UserDto(
+                id=created.user.id,
+                username=created.user.username,
+                joined_date=created.user.joined_date,
+            ),
+        )
 
     return
 
@@ -96,19 +161,74 @@ def _referenced_post_exists(db: Session, referred_post_id: UUID) -> bool:
 
 def get_posts_by_author_id(
     db: Session, params: Params, author_id: UUID
-) -> List[PostDto]:
+) -> List[Union[PostDto, QuotePostDto, RepostDto]]:
     posts = post_repo.get_posts_by_author(db, params, author_id)
     return _post_list_to_dto(posts)
 
 
-def _post_list_to_dto(posts: Any) -> List[PostDto]:
-    [
-        PostDto(
-            id=post.id,
-            text=post.text,
-            created_at=post.created_at,
-            type=post.type,
-            user=UserDto(id=post.user.id, username=post.user.username),
-        )
-        for post in posts
-    ]
+def _post_list_to_dto(posts: Any) -> List[Union[QuotePostDto, RepostDto, PostDto]]:
+    result = []
+    for post in posts:
+        if post.type == PostTypes.DEFAULT:
+            result.append(
+                PostDto(
+                    id=post.id,
+                    text=post.text,
+                    created_at=post.created_at,
+                    type=post.type,
+                    user=UserDto(id=post.user.id, username=post.user.username),
+                )
+            )
+
+        if post.type == PostTypes.REPOST:
+            result.append(
+                RepostDto(
+                    id=post.id,
+                    created_at=post.created_at,
+                    type=post.type,
+                    user=UserDto(
+                        id=post.user.id,
+                        username=post.user.username,
+                        joined_date=post.user.joined_date,
+                    ),
+                    refered_post=PostDto(
+                        id=post.refered_post.id,
+                        text=post.refered_post.id,
+                        created_at=post.refered_post.id,
+                        type=post.refered_post.id,
+                        user=UserDto(
+                            id=post.refered_post.user.id,
+                            username=post.refered_post.user.username,
+                            joined_date=post.refered_post.user.joined_date,
+                        ),
+                    ),
+                )
+            )
+
+        if post.type == PostTypes.QUOTED:
+            result.append(
+                QuotePostDto(
+                    id=post.id,
+                    text=post.text,
+                    created_at=post.created_at,
+                    type=post.type,
+                    user=UserDto(
+                        id=post.user.id,
+                        username=post.user.username,
+                        joined_date=post.user.joined_date,
+                    ),
+                    refered_post=PostDto(
+                        id=post.refered_post.id,
+                        text=post.refered_post.id,
+                        created_at=post.refered_post.id,
+                        type=post.refered_post.id,
+                        user=UserDto(
+                            id=post.refered_post.user.id,
+                            username=post.refered_post.user.username,
+                            joined_date=post.refered_post.user.joined_date,
+                        ),
+                    ),
+                )
+            )
+
+    return result

@@ -4,6 +4,7 @@ from sqlalchemy import create_engine
 
 from src.config import get_database_url, get_environment, TEST_ENV
 
+print(f"{'*'*30} DB URL: {get_database_url()}")
 engine = create_engine(get_database_url())
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

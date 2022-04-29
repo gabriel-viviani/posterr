@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Date, ForeignKey, String
+from sqlalchemy import Column, Date, ForeignKey, String, Table
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import date
@@ -7,32 +7,27 @@ from uuid import uuid4
 from src.repository.database import Base
 from src.config import generate_today
 
-
-class Follow(Base):
-    __tablename__ = "follow"
-
-    follower_id = Column(ForeignKey("user.id"), UUID(as_uuid=True), primary_key=True)
-    following_id = Column(ForeignKey("user.id"), UUID(as_uuid=True), primary_key=True)
-    since = Column(Date, default=generate_today())
-
-    def __init__(self, follower_id: UUID, following_id: UUID, since: date) -> None:
-        self.follower_id = follower_id
-        self.following_id = following_id
-        self.since = since
+following = Table(
+    "follow",
+    Base.metadata,
+    Column("id", UUID(as_uuid=True), primary_key=True),
+    Column("follower_id", UUID(as_uuid=True), ForeignKey("user.id"), primary_key=True),
+    Column("following_id", UUID(as_uuid=True), ForeignKey("user.id"), primary_key=True),
+)
 
 
 class User(Base):
     __tablename__ = "user"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    username = Column(String, primary_key=True, length=14)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4, unique=True)
+    username = Column(String(length=14), primary_key=True)
     joined_date = Column(Date, default=generate_today())
 
-    followers = relationship(
+    following = relationship(
         "User",
-        secondary=Follow,
-        primaryjoin=id == Follow.following_id,
-        secondaryjoin=id == Follow.follower_id,
+        secondary=following,
+        primaryjoin=id == following.c.follower_id,
+        secondaryjoin=id == following.c.following_id,
         backref=backref("children"),
     )
 

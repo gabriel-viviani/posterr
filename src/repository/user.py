@@ -2,19 +2,19 @@ from sqlalchemy.orm import Session
 from typing import Any
 from uuid import UUID
 
-from src.model.user import User, Follow
+from src.model.user import User
 
 
 def get_user_by_id(db: Session, user_id: UUID) -> Any:
     return db.query(User).filter_by(id=user_id).first()
 
 
-def get_user_following_num(db: Session, user_id: UUID) -> Any:
-    return db.query(Follow).filter_by(follower_id=user_id).count()
+def save_user_follow(db: Session, follower_id: UUID, followed_id: UUID) -> None:
+    followed = get_user_by_id(db, followed_id)
+    follower = get_user_by_id(db, follower_id)
 
-
-def save_user_follow(db: Session, follow: Follow) -> None:
-    db.add(follow)
+    follower.following.append(followed)
+    db.add(follower)
     db.commit()
 
 

@@ -12,12 +12,12 @@ class Post(Base):
     __tablename__ = "post"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    text = Column(String, length=777, nullable=True)
+    text = Column(String(length=777), nullable=True)
     created_at = Column(Date, default=generate_today())
-    author_id = Column(ForeignKey("user.id"), UUID(as_uuid=True))
+    author_id = Column(UUID(as_uuid=True), ForeignKey("user.id"))
     type = Column(Enum(PostTypes), nullable=False, default=PostTypes.DEFAULT)
 
-    refered_post_id = Column(ForeignKey("post.id"), UUID(as_uuid=True), nullable=True)
+    refered_post_id = Column(UUID(as_uuid=True), ForeignKey("post.id"), nullable=True)
 
     user = relationship("User", back_populates="posts")
     refered_post = relationship("Post", backref=backref("parent", remote_side=[id]))

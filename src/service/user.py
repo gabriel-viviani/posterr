@@ -1,26 +1,25 @@
 from fastapi import HTTPException, status
 from fastapi_pagination import Params
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Union
 from uuid import UUID
 
+from src.dto.post import PostDto, QuotePostDto, RepostDto
 from src.repository import user as user_repo
 from src.service import post as post_service
 from src.dto.user import UserDto, UserFollow
-from src.model.user import Follow
-from src.dto.post import PostDto
 
 
 def get_user(db: Session, user_id: UUID) -> UserDto:
-    if _user_exists:
+    if _user_exists(db, user_id):
         user = user_repo.get_user_by_id(db, user_id)
 
         return UserDto(
             id=user.id,
             username=user.username,
             joined_date=user.joined_date,
-            followers=len(user.followers),
-            following=user_repo.get_user_following_num(db, user_id),
+            followers=len(user.following),
+            following=len(user.following),
         )
 
 
@@ -35,7 +34,9 @@ def _user_exists(db: Session, user_id: UUID) -> bool:
     return True
 
 
-def get_user_posts(db: Session, params: Params, user_id: UUID) -> List[PostDto]:
+def get_user_posts(
+    db: Session, params: Params, user_id: UUID
+) -> List[Union[PostDto, QuotePostDto, RepostDto]]:
     if _user_exists(db, user_id):
         return post_service.get_posts_by_author_id(db, params, user_id)
 
@@ -54,8 +55,7 @@ def follow_user(db: Session, user_id: UUID, following: UserFollow) -> None:
                 detail=f"This user already follows {following.followed_id}",
             )
 
-        follow = Follow(follower_id=user_id, following_id=following.followed_id)
-        user_repo.save_user_follow(db, follow)
+        user_repo.save_user_follow(db, user_id, following.followed_id)
 
         return
 

@@ -1,0 +1,29 @@
+version: "3"
+services:
+  db:
+    image: postgres:14
+    ports:
+      - "5433"
+    volumes:
+      - app-db-data:/var/lib/postgresql/data/pgdata  # 3
+    environment:
+      - POSTGRES_USER=${PG_USER}
+      - POSTGRES_PASSWORD=${PG_PW}
+      - POSTGRES_DB=app
+
+  web:
+    build:
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    ports:
+      - "80:80"
+    volumes:
+      - ./app:/app
+    environment:
+      - DB_URL=postgresql://${PG_USER}:${PG_PW}@db:5432/app
+      - DB_TEST_URL=postgresql://${PG_USER}:${PG_PW}@db:5432/app_test
+      - BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:80"]
+      - ENV=${ENV}
+volumes:
+  app-db-data:
